@@ -1,12 +1,12 @@
 #include <Arduino.h>
 
 /* Pin Def */
-const byte potMeter   = PB1;
+const byte potMeter   = PB0;
 const byte ledPin     = PA1;
 
 /* Global Var */
-static uint16_t potValue = 0;
-static bool buttonState = false;
+static int buttonState   = 0;
+static int potAnalog     = 0;
 static unsigned long lastDebugSerial = 0;
 static unsigned long currentMillis = 0;
 
@@ -41,8 +41,8 @@ void setup() {
 void loop() {
 
   /* Read */
-  int16_t potAnalog   = analogRead(potMeter);
-  int8_t  buttonState = digitalRead(USER_BTN);
+  potAnalog     = analogRead(potMeter);
+  buttonState   = digitalRead(USER_BTN);
   currentMillis = millis();
 
   int potVoltage = map(potAnalog, 0, 1023, 0, 500);
@@ -52,23 +52,22 @@ void loop() {
   if (currentMillis - lastDebugSerial > 200) {
     lastDebugSerial = millis();
     
-    float potVoltage_f = potVoltage / 100.0;
-
-    char str[100];
-    sprintf(str, "ADC Reading: %d || Voltage: %f", potAnalog, potVoltage_f);
-    Serial.println(str);
+    float potVoltage_f = potVoltage / 100.00;
+    
+    Serial.print("ADC Reading: ");Serial.print(potAnalog);
+    Serial.print(" | Voltage: ");Serial.println(potVoltage_f);
   }
 
   /* Write */
 
   if (potVoltage > 200) {
-    digitalWrite(LED_BUILTIN, HIGH);
-  } else {
     digitalWrite(LED_BUILTIN, LOW);
+  } else {
+    digitalWrite(LED_BUILTIN, HIGH);
   }
-  if (!buttonState) {
+  if (buttonState == LOW) {
     ledFading(ledPin);
   } else {
-    digitalWrite(ledPin, LOW);
+    analogWrite(ledPin, 0);
   }
 }
