@@ -1,43 +1,61 @@
-#define DS1307_I2C_ADDRESS 0x68
-
 #include "Arduino.h"
-#include "Wire.h"
+#include "RTClib.h"
 
-typedef struct DateTime {
-  // byte = uint8_t
-  byte second;
-  byte minute;
-  byte hour;
-  byte dayOfWeek;
-  byte dayOfMonth;
-  byte month;
-  byte year;
-} DateTime_t;
+#ifndef USR_BUTTON
+  #define USR_BUTTON 0
+#endif
+const int POT_PIN = A0;
+
+RTC_DS1307 rtc;
   
-
-/* Include the following functions in your sketch */
-#include "Function.h"
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+const int intervalDebug[3] = {1000, 5000, 10000};
 
 void setup()
 {
   /* Initialize serial communication and wait for port to open: */
-  Wire.begin();         // Join I2C Bus (address optional for master)
   Serial.begin(115200); // Start the Serial communication to send messages to the computer
-  delay(1000);          // Wait for 1 second
+
+  /* PinMode */
+  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(USR_BUTTON, INPUT_PULLUP);
+  pinMode(POT_PIN, INPUT);
+
+  /* RTC setup */
+  if (! rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    while (1) delay(10);
+  }
+
+  if (! rtc.isrunning()) {
+    Serial.println("RTC is NOT running, let's set the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
 }
 
 void loop()
 {
-  /* Initialize local variables */
-  DateTime_t waktu;
-  bool err;
-  
+  /* Initialize global variables */
+  static int buttonState, potADC, potValue, index_interval;
+  static unsigned long lastDebugMillis = 0;
+
   /* Read */
-  err = getDateTime(&waktu);
+  potADC = analogRead(POT_PIN);
+  buttonState = digitalRead(USR_BUTTON);
 
-  /* Debug  */
-
+  /* Logic */
+  if (!buttonState) {
+    index_interval = (index_interval + 1) % 3;
+  }
+  potValue = map(potADC, 0, 1023, 0, 500);
+  
   /* Output */
-  Serial.println("Hello World!");
-  Serial.println(waktu.second);
+  if (millis() - lastDebugMillis > intervalDebug[index_interval]) {
+    lastDebugMillis = millis();
+    // LED Blink
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    // Debug
+    Serial.println(potValue);
+  }
 }
