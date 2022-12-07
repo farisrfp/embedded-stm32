@@ -8,7 +8,6 @@ const int POT_PIN = A0;
 
 RTC_DS1307 rtc;
   
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 const int intervalDebug[3] = {1000, 5000, 10000};
 
 void setup()
@@ -27,7 +26,6 @@ void setup()
     Serial.flush();
     while (1) delay(10);
   }
-
   if (! rtc.isrunning()) {
     Serial.println("RTC is NOT running, let's set the time!");
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
@@ -37,12 +35,14 @@ void setup()
 void loop()
 {
   /* Initialize global variables */
-  static int buttonState, potADC, potValue, index_interval;
+  static int buttonState, potADC, potValue;
+  static int index_interval = 0;
   static unsigned long lastDebugMillis = 0;
 
   /* Read */
   potADC = analogRead(POT_PIN);
   buttonState = digitalRead(USR_BUTTON);
+  DateTime now = rtc.now();
 
   /* Logic */
   if (!buttonState) {
@@ -53,9 +53,16 @@ void loop()
   /* Output */
   if (millis() - lastDebugMillis > intervalDebug[index_interval]) {
     lastDebugMillis = millis();
+    // Debug
+    float potVoltage_f = potValue / 100.00;
+    char buffer[50];
+    sprintf(buffer, "Potentiometer: %.2fV", potVoltage_f);
+    Serial.print(buffer);
+    sprintf(buffer, " - Time: %02d/%02d/%04d %02d:%02d:%02d", now.day(), now.month(), now.year(), now.hour(), now.minute(), now.second());
+    Serial.println(buffer);    
     // LED Blink
     digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-    // Debug
-    Serial.println(potValue);
+    delay(200);
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
 }
