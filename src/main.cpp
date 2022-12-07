@@ -1,73 +1,68 @@
-#include <Arduino.h>
+#include "Arduino.h"
+#include "RTClib.h"
 
-/* Pin Def */
-const byte potMeter   = PB0;
-const byte ledPin     = PA1;
+#ifndef USR_BUTTON
+  #define USR_BUTTON 0
+#endif
+const int POT_PIN = A0;
 
-/* Global Var */
-static int buttonState   = 0;
-static int potAnalog     = 0;
-static unsigned long lastDebugSerial = 0;
-static unsigned long currentMillis = 0;
+RTC_DS1307 rtc;
+  
+const int intervalDebug[3] = {1000, 5000, 10000};
 
-void ledFading(byte led_pin) {
-  /* Global Var */
-  static int8_t fadeAmount = 1;
-  static uint8_t ledBrightness = 0;
-  static unsigned long lastLedFading = 0;
-
-  /* Fading */
-  if (currentMillis - lastLedFading >= 5) {
-    lastLedFading = currentMillis;
-    ledBrightness += fadeAmount;
-    if (ledBrightness == 0 || ledBrightness == 255) {
-      fadeAmount = -fadeAmount;
-    }
-  }
-  analogWrite(led_pin, ledBrightness);
-}
-
-void setup() {
-  Serial.begin(115200);
-  delay(500); // Wait for Serial Monitor
+void setup()
+{
+  /* Initialize serial communication and wait for port to open: */
+  Serial.begin(115200); // Start the Serial communication to send messages to the computer
 
   /* PinMode */
-  pinMode(USER_BTN, INPUT_PULLUP);
-  pinMode(potMeter, INPUT);
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(ledPin, OUTPUT);
+  pinMode(USR_BUTTON, INPUT_PULLUP);
+  pinMode(POT_PIN, INPUT);
+
+  /* RTC setup */
+  if (! rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    Serial.flush();
+    while (1) delay(10);
+  }
+  if (! rtc.isrunning()) {
+    Serial.println("RTC is NOT running, let's set the time!");
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+  }
 }
 
-void loop() {
+void loop()
+{
+  /* Initialize global variables */
+  static int buttonState, potADC, potValue;
+  static int index_interval = 0;
+  static unsigned long lastDebugMillis = 0;
 
   /* Read */
-  potAnalog     = analogRead(potMeter);
-  buttonState   = digitalRead(USER_BTN);
-  currentMillis = millis();
+  potADC = analogRead(POT_PIN);
+  buttonState = digitalRead(USR_BUTTON);
+  DateTime now = rtc.now();
 
-  int potVoltage = map(potAnalog, 0, 1023, 0, 500);
-
-  /* Debug */
+  /* Logic */
+  if (!buttonState) {
+    index_interval = (index_interval + 1) % 3;
+  }
+  potValue = map(potADC, 0, 1023, 0, 500);
   
-  if (currentMillis - lastDebugSerial > 200) {
-    lastDebugSerial = millis();
-    
-    float potVoltage_f = potVoltage / 100.00;
-    
-    Serial.print("ADC Reading: ");Serial.print(potAnalog);
-    Serial.print(" | Voltage: ");Serial.println(potVoltage_f);
-  }
-
-  /* Write */
-
-  if (potVoltage > 200) {
-    digitalWrite(LED_BUILTIN, LOW);
-  } else {
-    digitalWrite(LED_BUILTIN, HIGH);
-  }
-  if (buttonState == LOW) {
-    ledFading(ledPin);
-  } else {
-    analogWrite(ledPin, 0);
+  /* Output */
+  if (millis() - lastDebugMillis > intervalDebug[index_interval]) {
+    lastDebugMillis = millis();
+    // Debug
+    float potVoltage_f = potValue / 100.00;
+    char buffer[50];
+    sprintf(buffer, "Potentiometer: %.2fV", potVoltage_f);
+    Serial.print(buffer);
+    sprintf(buffer, " - Time: %02d/%02d/%04d %02d:%02d:%02d", now.day(), now.month(), now.year(), now.hour(), now.minute(), now.second());
+    Serial.println(buffer);    
+    // LED Blink
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    delay(200);
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
   }
 }

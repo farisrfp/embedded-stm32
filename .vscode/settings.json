@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "pinconfigured.h": "c",
+    "cstddef": "cpp"
+  }
+}
