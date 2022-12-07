@@ -23,4 +23,4 @@ This is Embedded System Project, which is basic I/O, communication using UART an
 3. Install the dependencies using `pio lib install`
 4. Build the project using `pio run`
 5. Upload the project to the microcontroller using `pio run --target upload`
-6. The LED should now start blinking
+6. The program should start 
