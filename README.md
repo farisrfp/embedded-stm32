@@ -1,6 +1,6 @@
 # Embedded Systems Project
 
-This is Embedded System Project, which is basic I/O, communication using UART and I2C, ADC, PWM, and etc. It uses the PlatformIO ecosystem and a custom environment to build and run the project on custom boards.
+This is Embedded System Project, which is basic I/O, communication using UART and I2C, ADC, PWM, and etc. It uses the PlatformIO ecosystem and a custom environment to build and run the project on several boards.
 
 ## Dependencies
 
