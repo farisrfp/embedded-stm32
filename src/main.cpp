@@ -1,10 +1,10 @@
 #include "Arduino.h"
 #include "RTClib.h"
 
-#ifndef USR_BUTTON
-  #define USR_BUTTON 0
+#ifndef USER_BTN
+  #define USER_BTN 0
 #endif
-const int POT_PIN = A0;
+const int POT_PIN = A7;
 
 RTC_DS1307 rtc;
   
@@ -17,7 +17,7 @@ void setup()
 
   /* PinMode */
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(USR_BUTTON, INPUT_PULLUP);
+  pinMode(USER_BTN, INPUT_PULLUP);
   pinMode(POT_PIN, INPUT);
 
   /* RTC setup */
@@ -35,34 +35,33 @@ void setup()
 void loop()
 {
   /* Initialize global variables */
-  static int buttonState, potADC, potValue;
+  static int buttonState, potADC, potVoltage;
   static int index_interval = 0;
   static unsigned long lastDebugMillis = 0;
 
   /* Read */
   potADC = analogRead(POT_PIN);
-  buttonState = digitalRead(USR_BUTTON);
+  buttonState = digitalRead(USER_BTN);
   DateTime now = rtc.now();
 
   /* Logic */
   if (!buttonState) {
     index_interval = (index_interval + 1) % 3;
   }
-  potValue = map(potADC, 0, 1023, 0, 500);
+  potVoltage = map(potADC, 0, 1023, 0, 500);
   
   /* Output */
   if (millis() - lastDebugMillis > intervalDebug[index_interval]) {
     lastDebugMillis = millis();
     // Debug
-    float potVoltage_f = potValue / 100.00;
+    float potVoltage_f = (float)potVoltage / 100.00;
+    Serial.print("Potentiometer: ");Serial.print(potVoltage_f);Serial.print("V");
     char buffer[50];
-    sprintf(buffer, "Potentiometer: %.2fV", potVoltage_f);
-    Serial.print(buffer);
     sprintf(buffer, " - Time: %02d/%02d/%04d %02d:%02d:%02d", now.day(), now.month(), now.year(), now.hour(), now.minute(), now.second());
     Serial.println(buffer);    
     // LED Blink
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    digitalWrite(LED_BUILTIN, LOW);
     delay(200);
-    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+    digitalWrite(LED_BUILTIN, HIGH);
   }
 }
